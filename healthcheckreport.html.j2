@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+table, th, td {
+  border: 1px solid black;
+  border-collapse: collapse;
+}
+th, td {
+  padding: 10px;
+}
+</style>
+</head>
+<body>
+
+<h2>Component Health Check Report</h2>
+
+<table style="width:100%">
+  <tr>
+    <th style="width:40%">ComponentName</th>
+    <th style="width:10%">Status</th> 
+    <th style="width:30%">Hostname</th>
+    <th style="width:20%">Current version</th>
+  {% for item in parsed_component %}
+    <tr>{% if item.Component_Name == none %}
+    <td style=" color: red; ">{{item.Component_Name_}}</td>
+    {% else %}
+    <td>{{item.Component_Name}}</td>
+    {% endif %}
+    {% if item.status_strength == 'excellent' %}
+    <td style=" color: green; ">{{item.status_strength}}</td>
+    {% elif item.status_strength == none %}
+    <td style=" color: green; ">{{item.status}}</td>
+    {% else %}
+    <td style=" color: red; ">{{item.status_strength}}</td>
+    {% endif %}
+    <td>{{item.Host}}</td>
+    <td>{{item.Version}}</td></tr>
+  {% endfor %}
+
+</table>
+<table style="width:100%">
+  {% for item in parsed_component_ %}
+    {% if item.Component_Name != none %}<tr>
+    {% if item.Component_Name == none %}
+    <td style=" color: red; width:40% ">{{item.Component_Name_}}</td>
+    {% else %}
+    <td style=" width:40% ">{{item.Component_Name}}</td>
+    {% endif %}
+    {% if item.status_strength == 'excellent' %}
+    <td style=" color: green; width:10% ">{{item.status_strength}}</td>
+    {% elif item.status_strength == none %}
+    <td style=" color: green; width:10%">{{item.status}}</td>
+    {% else %}<td style=" color: red; width:10%">{{item.status_strength}}</td>
+    {% endif %}
+    <td style="width:30%">{{item.Host}}</td>
+    <td style="width:20%">{{item.Version}}</td></tr>
+    {% endif %}
+  {% endfor %}
+
+</table>
+</body>
+</html>
