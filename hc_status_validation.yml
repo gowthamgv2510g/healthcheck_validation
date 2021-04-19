@@ -1,0 +1,79 @@
+---
+- name: update web servers
+  hosts: localhost
+  vars:
+    url: "{{ hc_url }}"
+
+  tasks:
+  # - name: Fetching all the health endpoint information
+  #   uri:
+  #     # url : "{{ url }}"
+  #     url: http://cazogreenbdry0.zous.internal/EnterpriseDiagnosticsBoundary/healthproxy.svc/healthproxy/healthcheck?resultType=FullHealth&hosts=svcs,pres,bdry,chat,wsvc&env=int_green
+  #     return_content: true
+  #     body_format: json
+  #     timeout: 600
+  #   register : endpoint_response
+  #   retries: 3
+
+  # - name: "Create a merged results file {{urls_results_file}}.json"
+  #   copy:
+  #     content: "{{endpoint_response.content}}"
+  #     dest: output.json
+  #   register: result
+  - name: Display the JSON file content
+    shell: cat output.json
+    register: result2
+
+  - name: save the Json data to a Variable as a Fact
+    set_fact:
+      jsondata: "{{ result2.stdout }}"
+
+  - name: output_debug
+    debug:
+      msg: "{{jsondata}}"
+
+  - name: Formating the endpoint_response
+    set_fact:
+      formated_endpoint_response: "{{ item | replace('\ufeff', '') | lower }}"
+    with_list: "{{ jsondata }}"
+
+  - name: Parsing the component details from the endpoint_response from the first list
+    set_fact:
+      parsed_component: "{{ formated_endpoint_response | json_query(query) }}"
+    vars:
+      # query: "[].{Host: host, Component_Name: health.ComponentName, status_strength: health.OverallStateStr, HostName: health.HostName, Version: health.Version}"
+      query: "[].{Host: host, Component_Name: health.componentname, status_strength: health.overallstatestr, HostName: health.hostname, Version: health.version, status: health.status, Component_Name_: component, error: error}"
+
+  - name: Parsing the component details from the endpoint_response from the second list
+    set_fact:
+      parsed_component_: "{{ formated_endpoint_response | json_query(query) }}"
+    vars:
+      # query: "[*].{Host: host, Component_Name: health.ComponentName, status_strength: health.OverallStateStr, HostName: health.HostName, Version: health.Version}"
+      query: "[*].{Host: host, Component_Name: health.componentname, status_strength: health.overallstatestr, HostName: health.hostname, Version: health.version, status: health.status, Component_Name_: component, error: error}"
+
+  - name: Create an html report file
+    file:
+      path: "{{ playbook_dir }}/healthcheckreport.html"
+      state: touch
+
+  - name: Jinja2 replacement for html template
+    template:
+      src: "{{ playbook_dir }}/healthcheckreport.html.j2"
+      dest: "{{ playbook_dir }}/healthcheckreport.html"
+
+  - name: Verifying the component status & formating the output
+    set_fact:
+      status_output_check: '* The status of this component "{{ item.Component_Name_ }}" within this perticular host "{{item.Host}}" is not "Excellent", for more details please verify the output' 
+    with_items: "{{ parsed_component }}"
+    when: "{{item.status_strength != 'excellent' and item.status != 'ok' }}"
+    register: status_output
+
+  - name: creating the alert messages from status_output_check
+    set_fact:
+      status_output_message: "{{ status_output | json_query(query) }}"
+    vars:
+      query: "results[*].ansible_facts.status_output_check"
+
+  - name: Printing the final output component status 
+    debug:
+      msg: "{{ status_output_message }}"
